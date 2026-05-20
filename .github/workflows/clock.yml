@@ -1,0 +1,82 @@
+name: Oracle Fusion Clock
+
+on:
+  schedule:
+    # Clock IN  — 09:00 CEST (UTC+2 summer) = 07:00 UTC. Script adds 0–15 min random delay.
+    - cron: '0 7 * * 1-5'
+    # Clock OUT — 17:45 CEST (UTC+2 summer) = 15:45 UTC. Script adds 0–15 min random delay.
+    - cron: '45 15 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action'
+        required: true
+        default: clock-in
+        type: choice
+        options: [clock-in, clock-out]
+      no_delay:
+        description: 'Skip random delay'
+        type: boolean
+        default: false
+
+jobs:
+  clock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Restore session
+        run: |
+          mkdir -p ~/.oracle-clock/screenshots
+          echo "${{ secrets.SESSION_JSON }}" | base64 -d > ~/.oracle-clock/session.json
+
+      - name: Write .env
+        run: |
+          cat > .env <<'EOF'
+          ORACLE_URL=${{ secrets.ORACLE_URL }}
+          TIME_NAV_URL=${{ secrets.TIME_NAV_URL }}
+          SSO_DOMAIN=${{ secrets.SSO_DOMAIN }}
+          HEADLESS=true
+          DATA_DIR=/home/runner/.oracle-clock
+          CHECKIN_DELAY_MIN=0
+          CHECKIN_DELAY_MAX=15
+          CHECKOUT_DELAY_MIN=0
+          CHECKOUT_DELAY_MAX=15
+          EOF
+
+      - name: Determine action
+        id: action
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "cmd=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
+            echo "flags=${{ inputs.no_delay == 'true' && '--no-delay' || '' }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 7 * * 1-5" ]; then
+            echo "cmd=clock-in"  >> "$GITHUB_OUTPUT"
+            echo "flags="        >> "$GITHUB_OUTPUT"
+          else
+            echo "cmd=clock-out" >> "$GITHUB_OUTPUT"
+            echo "flags="        >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run
+        run: python main.py ${{ steps.action.outputs.cmd }} ${{ steps.action.outputs.flags }}
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.run_id }}
+          path: ~/.oracle-clock/screenshots/
+          retention-days: 7

@@ -1,0 +1,23 @@
+# Oracle Fusion automatic clock-in/out
+#
+# The script handles the randomized delay internally (CHECKIN_DELAY_MIN/MAX),
+# so the cron triggers at the START of the window.
+#
+# Adjust the timezone of your server with:
+#   sudo timedatectl set-timezone Europe/Madrid   (or your tz)
+#
+# ─── Option A: plain Python venv ──────────────────────────────────────────────
+# Replace /opt/oracle-clock with your deploy path.
+#
+# Clock in  at 09:00 (script sleeps 0–15 min internally)
+0 9 * * 1-5 cd /opt/oracle-clock && .venv/bin/python main.py clock-in  >> /var/log/oracle-clock.log 2>&1
+# Clock out at 17:45 (script sleeps 0–15 min internally)
+45 17 * * 1-5 cd /opt/oracle-clock && .venv/bin/python main.py clock-out >> /var/log/oracle-clock.log 2>&1
+
+# ─── Option B: Docker ─────────────────────────────────────────────────────────
+# IMAGE=oracle-clock   (built with: docker build -t oracle-clock /opt/oracle-clock)
+# DATA=/opt/oracle-clock/data
+# ENV=/opt/oracle-clock/.env
+#
+# 0  9  * * 1-5  docker run --rm -v $DATA:/data --env-file $ENV oracle-clock clock-in  >> /var/log/oracle-clock.log 2>&1
+# 45 17 * * 1-5  docker run --rm -v $DATA:/data --env-file $ENV oracle-clock clock-out >> /var/log/oracle-clock.log 2>&1
