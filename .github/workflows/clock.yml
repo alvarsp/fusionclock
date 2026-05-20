@@ -35,6 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          sudo apt-get update
           playwright install chromium --with-deps
 
       - name: Restore session
