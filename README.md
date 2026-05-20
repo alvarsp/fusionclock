@@ -1,6 +1,26 @@
-# oracle-clock
+# fusionclock
 
-Automatic weekday clock-in / clock-out for Oracle Fusion HCM.
+> Automatic weekday clock-in / clock-out for Oracle Fusion HCM at OLX.
+
+## Quickstart (for teammates)
+
+```bash
+# Prerequisites: Python 3.9+, GitHub CLI
+# Install GitHub CLI if needed: brew install gh
+
+git clone https://github.com/alvarsp/fusionclock
+cd fusionclock
+./bootstrap.sh
+```
+
+The script will:
+1. Install Python dependencies and Playwright
+2. Open a browser — approve the **Okta push** on your phone
+3. Fork the repo to your GitHub account and wire up GitHub Actions
+
+That's it. Clock-in and clock-out run automatically on weekdays.
+
+---
 
 ## How it works
 
